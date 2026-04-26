@@ -1,0 +1,32 @@
+{
+  "formatVersion": 1,
+  "passTypeIdentifier": "pass.example.demo",
+  "teamIdentifier": "ABCDE12345",
+  "serialNumber": "cpn-0001",
+  "organizationName": "Example Apparel",
+  "description": "15% off",
+  "backgroundColor": "rgb(20, 83, 45)",
+  "foregroundColor": "rgb(250, 204, 21)",
+  "labelColor": "rgb(250, 204, 21)",
+  "logoText": "COMPANY NAME",
+  "style": "coupon",
+  "coupon": {
+    "primaryFields": [{ "key": "offer", "label": "OFFER", "value": "15% OFF" }],
+    "auxiliaryFields": [
+      {
+        "key": "expires",
+        "label": "EXPIRES",
+        "value": "2023-06-05T23:59:00Z",
+        "dateStyle": "PKDateStyleMedium",
+        "timeStyle": "PKDateStyleNone"
+      }
+    ]
+  },
+  "barcodes": [
+    {
+      "format": "PKBarcodeFormatPDF417",
+      "message": "cpn-0001",
+      "messageEncoding": "iso-8859-1"
+    }
+  ]
+}

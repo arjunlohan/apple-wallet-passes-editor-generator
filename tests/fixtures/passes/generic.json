@@ -1,0 +1,36 @@
+{
+  "formatVersion": 1,
+  "passTypeIdentifier": "pass.example.demo",
+  "teamIdentifier": "ABCDE12345",
+  "serialNumber": "gen-0001",
+  "organizationName": "Example Co",
+  "description": "Example generic pass",
+  "backgroundColor": "rgb(30, 41, 59)",
+  "foregroundColor": "rgb(248, 250, 252)",
+  "labelColor": "rgb(148, 163, 184)",
+  "logoText": "Example",
+  "style": "generic",
+  "generic": {
+    "headerFields": [{ "key": "n", "label": "NO.", "value": "A123" }],
+    "primaryFields": [{ "key": "name", "label": "NAME", "value": "Liz Chetelat" }],
+    "secondaryFields": [{ "key": "role", "label": "ROLE", "value": "Member" }],
+    "auxiliaryFields": [{ "key": "sub", "label": "SUB", "value": "Since 2021" }],
+    "backFields": [
+      {
+        "key": "terms",
+        "label": "TERMS",
+        "value": "See <a href=\"https://example.com/terms\">terms</a>.",
+        "attributedValue": "See <a href=\"https://example.com/terms\">terms</a>.",
+        "dataDetectorTypes": ["PKDataDetectorTypeLink"]
+      }
+    ]
+  },
+  "barcodes": [
+    {
+      "format": "PKBarcodeFormatQR",
+      "message": "https://example.com/pass/gen-0001",
+      "messageEncoding": "iso-8859-1",
+      "altText": "gen-0001"
+    }
+  ]
+}

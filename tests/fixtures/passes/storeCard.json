@@ -1,0 +1,26 @@
+{
+  "formatVersion": 1,
+  "passTypeIdentifier": "pass.example.demo",
+  "teamIdentifier": "ABCDE12345",
+  "serialNumber": "sc-0001",
+  "organizationName": "Lift It",
+  "description": "Lift It membership card",
+  "backgroundColor": "rgb(251, 191, 36)",
+  "foregroundColor": "rgb(17, 24, 39)",
+  "labelColor": "rgb(17, 24, 39)",
+  "logoText": "Lift It",
+  "style": "storeCard",
+  "storeCard": {
+    "headerFields": [{ "key": "lvl", "label": "LEVEL", "value": "Premier" }],
+    "primaryFields": [{ "key": "holder", "label": "POLICY HOLDER", "value": "Liz Chetelat" }],
+    "secondaryFields": [{ "key": "mid", "label": "MEMBER ID", "value": "235 933 7415" }]
+  },
+  "barcodes": [
+    {
+      "format": "PKBarcodeFormatCode128",
+      "message": "111122223333",
+      "messageEncoding": "iso-8859-1",
+      "altText": "111122223333"
+    }
+  ]
+}

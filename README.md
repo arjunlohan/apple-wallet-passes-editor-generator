@@ -1,36 +1,72 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Apple Wallet Pass Editor & Generator
 
-## Getting Started
+Open-source, ground-up editor and generator for Apple Wallet `.pkpass` files. What you see in the live preview matches the signed pass Apple Wallet opens — pixel-for-pixel, field-for-field.
 
-First, run the development server:
+MIT licensed. Designed to be forked and embedded in other apps: the spec, layout engine, preview, and generator are separate importable modules with a stable public API.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Status
+
+**v0.1.0** ships all five classic pass styles — `boardingPass`, `coupon`, `eventTicket`, `generic`, `storeCard` — with the full barcode set (QR, PDF417, Aztec, Code128) and the complete image asset matrix (1x / 2x / 3x + `~dark` variants).
+
+Out of scope for v0.1.0 (tracked in `tasks/todo.md` for later milestones):
+- Self-hosted Wallet web service (register/unregister/update endpoints, APNs push).
+- Personalization token exchange.
+- iOS 18+ poster event-ticket layout.
+- Localization (`.lproj`).
+- NFC runtime, semantic-tag-driven layouts, relevance locations/dates.
+
+## Architecture
+
+One validated definition → one layout tree → two adapters (preview + generator). Neither adapter makes layout decisions independently, so the fidelity invariant is structural, not aspirational.
+
+```
+lib/pass-spec     → PassDefinition types + Zod schemas (single validation boundary)
+lib/pass-layout   → buildLayout() produces LayoutTree (style-dispatched, pure)
+lib/pass-preview  → React renderer, consumes LayoutTree
+lib/pass-generator → server-only: serialize + manifest (SHA-1) + CMS sign + fflate ZIP
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Getting started
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm install
+cp .env.example .env.local
+# Fill in your Apple Pass Type ID credentials in .env.local
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+npm run dev          # editor at http://localhost:3000/editor
+npm test             # 55 tests across spec, layout, preview, generator
+npm run build        # Next.js production build
+```
 
-## Learn More
+## Using the library in a fork
 
-To learn more about Next.js, take a look at the following resources:
+```ts
+// Validation — browser or server:
+import { PassDefinitionSchema } from "./lib/pass-spec";
+const parsed = PassDefinitionSchema.parse(myDefinition);
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+// Preview — browser only:
+import { PassPreview } from "./lib/pass-preview";
+<PassPreview definition={parsed} assets={myAssets} />
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+// Generator — server only (will refuse to bundle into a client component):
+import { generatePkpass, getSigner } from "./lib/pass-generator";
+const { bytes } = generatePkpass({ definition: parsed, assets: myAssets, signer: getSigner() });
+```
 
-## Deploy on Vercel
+## Verifying a generated pass
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+npm run verify-pkpass -- path/to/your.pkpass
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Checks ZIP contents, re-computes every manifest SHA-1, verifies the PKCS#7 detached CMS signature embeds the signer + WWDR intermediate, and re-parses `pass.json` through the schema. Run against any `.pkpass` from any source.
+
+## Requirements
+
+- Node.js 20+
+- An Apple Developer account with a Pass Type ID registered at [developer.apple.com](https://developer.apple.com/account/resources/identifiers/list/passTypeId). The `.env.example` file lists every required variable.
+
+## License
+
+MIT — see [`LICENSE`](./LICENSE).

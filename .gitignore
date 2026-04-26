@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Generated test certificates (never commit real ones either).
+/tests/fixtures/certs/

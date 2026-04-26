@@ -1,0 +1,35 @@
+{
+  "formatVersion": 1,
+  "passTypeIdentifier": "pass.example.demo",
+  "teamIdentifier": "ABCDE12345",
+  "serialNumber": "bp-0001",
+  "organizationName": "Example Air",
+  "description": "SFO to LGA boarding pass",
+  "backgroundColor": "rgb(21, 94, 117)",
+  "foregroundColor": "rgb(255, 255, 255)",
+  "labelColor": "rgb(207, 250, 254)",
+  "logoText": "Fleet",
+  "style": "boardingPass",
+  "boardingPass": {
+    "transitType": "PKTransitTypeAir",
+    "headerFields": [{ "key": "gate", "label": "GATE", "value": "62" }],
+    "primaryFields": [
+      { "key": "from", "label": "SAN FRANCISCO", "value": "SFO" },
+      { "key": "to", "label": "NEW YORK", "value": "LGA" }
+    ],
+    "secondaryFields": [
+      { "key": "sched", "label": "SCHEDULED", "value": "2:40" },
+      { "key": "flight", "label": "FLIGHT", "value": "AP 2214" },
+      { "key": "seat", "label": "SEAT", "value": "33A" },
+      { "key": "group", "label": "GROUP", "value": "B" }
+    ],
+    "auxiliaryFields": [{ "key": "pax", "label": "PASSENGER", "value": "LIZ CHETELAT" }]
+  },
+  "barcodes": [
+    {
+      "format": "PKBarcodeFormatQR",
+      "message": "bp-0001",
+      "messageEncoding": "iso-8859-1"
+    }
+  ]
+}
