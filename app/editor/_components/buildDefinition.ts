@@ -157,21 +157,38 @@ function buildPosterSemantics(values: EditorFormValues): Record<string, unknown>
 
 /**
  * Build the Apple `nfc` dictionary from the editor form. Returns null when
- * NFC is toggled off OR either required property is missing — so the
- * live preview stays valid while the user is still pasting the public
- * key. The schema enforces the ≤64-byte message + base64 SPKI checks.
+ * NFC is toggled off, either required property is missing, OR the public
+ * key isn't valid base64 yet — so the live preview stays valid while the
+ * user is mid-paste. The validate.ts pass still surfaces schema errors to
+ * the issue tray, so users aren't misled; they just aren't blocked by
+ * in-progress typing. The schema enforces the final ≤64-byte + SPKI check.
  */
 function buildNfc(values: EditorFormValues): Record<string, unknown> | null {
   if (!values.useNfc) return null;
   const message = values.nfcMessage.trim();
-  const key = values.nfcEncryptionPublicKey.trim();
-  if (message === "" || key === "") return null;
+  const keyCompact = values.nfcEncryptionPublicKey.replace(/\s+/g, "");
+  if (message === "" || keyCompact === "") return null;
+  if (!looksLikePlausibleSpki(keyCompact)) return null;
   const out: Record<string, unknown> = {
     message,
-    encryptionPublicKey: key,
+    encryptionPublicKey: keyCompact,
   };
   if (values.nfcRequiresAuthentication) out.requiresAuthentication = true;
   return out;
+}
+
+/**
+ * Mirror the schema's shape check: valid base64 that decodes to 64–120
+ * bytes (the range an ECDH P-256 SubjectPublicKeyInfo falls into). Used
+ * only to keep the preview valid while the user is mid-paste. Final
+ * validation runs in the schema as the pass is generated.
+ */
+function looksLikePlausibleSpki(input: string): boolean {
+  if (input.length === 0 || input.length % 4 !== 0) return false;
+  if (!/^[A-Za-z0-9+/]+=?=?$/.test(input)) return false;
+  const padding = (input.match(/=+$/)?.[0].length ?? 0);
+  const byteLength = (input.length / 4) * 3 - padding;
+  return byteLength >= 64 && byteLength <= 120;
 }
 
 function buildStyleBlock(style: PassStyle, values: EditorFormValues): Record<string, unknown> {

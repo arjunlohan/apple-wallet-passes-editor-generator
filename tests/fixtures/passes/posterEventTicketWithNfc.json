@@ -1,0 +1,62 @@
+{
+  "formatVersion": 1,
+  "passTypeIdentifier": "pass.example.demo",
+  "teamIdentifier": "ABCDE12345",
+  "serialNumber": "poster-nfc-0001",
+  "organizationName": "Apollo Live",
+  "description": "Fallen Voices Live · Apollo Theater",
+  "backgroundColor": "rgb(18, 10, 36)",
+  "foregroundColor": "rgb(255, 255, 255)",
+  "labelColor": "rgb(226, 214, 246)",
+  "logoText": "Apollo Live",
+  "preferredStyleSchemes": ["posterEventTicket", "eventTicket"],
+  "suppressHeaderDarkening": false,
+  "style": "eventTicket",
+  "semantics": {
+    "eventName": "Fallen Voices Live",
+    "venueName": "Apollo Theater",
+    "venueRegionName": "New York, NY",
+    "venueRoom": "Main Stage",
+    "eventType": "PKEventTypeLivePerformance",
+    "eventStartDate": "2026-09-12T20:00:00Z",
+    "performerNames": ["Phoenix Rivers", "The Outliers"]
+  },
+  "nfc": {
+    "message": "poster-vas-payload-0001",
+    "encryptionPublicKey": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEZKEcmJj9gyNKkCMZ1IBpiDql/9I0Q3xBCuYsqPCcowL7tyaIG6RoF3APgZ4QsCPJoAH8Gv2x3IX1QeUqJzypIw==",
+    "requiresAuthentication": true
+  },
+  "eventTicket": {
+    "headerFields": [
+      {
+        "key": "date",
+        "label": "DATE",
+        "value": "2026-09-12T20:00:00Z",
+        "dateStyle": "PKDateStyleMedium",
+        "timeStyle": "PKDateStyleShort"
+      }
+    ],
+    "primaryFields": [
+      { "key": "name", "label": "EVENT", "value": "Fallen Voices Live" }
+    ],
+    "secondaryFields": [
+      { "key": "section", "label": "Section", "value": "ORCH" },
+      { "key": "row", "label": "Row", "value": "D" },
+      { "key": "seat", "label": "Seat", "value": "14" }
+    ],
+    "auxiliaryFields": [
+      { "key": "venue", "label": "VENUE", "value": "Apollo Theater" }
+    ],
+    "backFields": [
+      {
+        "key": "entry",
+        "label": "ENTRY",
+        "value": "Gates open at 7:00 PM. Doors close 15 minutes after the opening act."
+      }
+    ],
+    "additionalInfoFields": [
+      { "key": "gates", "label": "Gates Open", "value": "7:00 PM" },
+      { "key": "curfew", "label": "Curfew", "value": "11:00 PM" }
+    ]
+  }
+}
