@@ -44,10 +44,17 @@ function chunk(type: string, data: Uint8Array): Uint8Array {
 }
 
 /**
- * Build a tiny RGB PNG of the given dimensions.
- * Not rendered for real — just valid enough to pass magic + IHDR checks.
+ * Build a tiny RGB PNG of the given dimensions. By default the pixels are
+ * black — sufficient for magic+IHDR checks in the generator tests. Pass an
+ * explicit `color` to get a solid-fill PNG, which the fidelity preview uses
+ * to make image-slot placement visually verifiable (e.g. teal strip,
+ * olive background, amber thumbnail).
  */
-export function makePng(width: number, height: number): Uint8Array {
+export function makePng(
+  width: number,
+  height: number,
+  color?: { r: number; g: number; b: number },
+): Uint8Array {
   const ihdrData = new Uint8Array(13);
   const dv = new DataView(ihdrData.buffer);
   dv.setUint32(0, width, false);
@@ -61,9 +68,19 @@ export function makePng(width: number, height: number): Uint8Array {
   // Raw scanlines: each row prefixed with filter byte 0, followed by 3 bytes per pixel.
   const rowBytes = width * 3;
   const raw = new Uint8Array(height * (rowBytes + 1));
+  const [r, g, b] = color ? [color.r, color.g, color.b] : [0, 0, 0];
   for (let y = 0; y < height; y++) {
     raw[y * (rowBytes + 1)] = 0;
-    // Leave pixels as zeros (black). Good enough for IHDR / magic checks.
+    if (color) {
+      const rowStart = y * (rowBytes + 1) + 1;
+      for (let x = 0; x < width; x++) {
+        const p = rowStart + x * 3;
+        raw[p] = r;
+        raw[p + 1] = g;
+        raw[p + 2] = b;
+      }
+    }
+    // Black (zero-filled) is the default.
   }
   const idatData = deflateSync(raw);
 

@@ -1,13 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { PassDefinitionSchema } from "@/lib/pass-spec";
 import { buildDefinitionFromForm } from "@/app/editor/_components/buildDefinition";
-import type { EditorFormValues } from "@/app/editor/_components/defaults";
+import { defaultValues, emptyField, type EditorFormValues } from "@/app/editor/_components/defaults";
 
 function baseValues(): EditorFormValues {
   return {
-    style: "generic",
-    passTypeIdentifier: "pass.example.demo",
-    teamIdentifier: "ABCDE12345",
+    ...defaultValues("generic"),
     serialNumber: "rel-0001",
     organizationName: "Example Co",
     description: "Example pass",
@@ -16,34 +14,15 @@ function baseValues(): EditorFormValues {
     foregroundColorHex: "#f8fafc",
     labelColorHex: "#94a3b8",
     headerFields: [],
-    primaryFields: [{ key: "name", label: "NAME", value: "Demo" }],
+    primaryFields: [{ ...emptyField(), key: "name", label: "NAME", value: "Demo" }],
     secondaryFields: [],
     auxiliaryFields: [],
     backFields: [],
     additionalInfoFields: [],
-    transitType: "PKTransitTypeGeneric",
-    barcodeFormat: "PKBarcodeFormatQR",
     barcodeMessage: "demo",
-    barcodeEncoding: "iso-8859-1",
     barcodeAltText: "",
-    useEventTicketPoster: false,
-    suppressHeaderDarkening: false,
-    posterEventName: "",
-    posterVenueName: "",
-    posterVenueRegionName: "",
-    posterVenueRoom: "",
-    posterEventType: "",
-    posterEventStartDate: "",
-    posterPerformerNames: "",
-    posterAwayTeamAbbreviation: "",
-    posterHomeTeamAbbreviation: "",
     locations: [],
     relevantDates: [],
-    useNfc: false,
-    nfcMessage: "",
-    nfcEncryptionPublicKey: "",
-    nfcRequiresAuthentication: false,
-    assets: {},
   };
 }
 

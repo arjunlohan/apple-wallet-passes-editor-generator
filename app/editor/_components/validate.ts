@@ -20,6 +20,16 @@ const TOP_LEVEL_TO_FORM: Record<string, string> = {
   backgroundColor: "backgroundColorHex",
   foregroundColor: "foregroundColorHex",
   labelColor: "labelColorHex",
+  expirationDate: "expirationDate",
+  voided: "voided",
+  sharingProhibited: "sharingProhibited",
+  suppressStripShine: "suppressStripShine",
+  groupingIdentifier: "groupingIdentifier",
+  appLaunchURL: "appLaunchURL",
+  webServiceURL: "webServiceURL",
+  authenticationToken: "authenticationToken",
+  associatedStoreIdentifiers: "associatedStoreIdentifiers",
+  userInfo: "userInfoJson",
 };
 
 /**
@@ -82,7 +92,7 @@ function mapPath(segments: (string | number)[], style: PassStyle): string {
 export function validateEditor(values: EditorFormValues): EditorIssue[] {
   let definition: unknown;
   try {
-    definition = buildDefinitionFromForm(values);
+    definition = buildDefinitionFromForm(values, "validate");
   } catch (err) {
     return [
       {

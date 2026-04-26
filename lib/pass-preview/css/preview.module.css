@@ -161,6 +161,12 @@
 .fieldGroup {
   flex: 1;
   min-width: 0;
+  /* Without overflow:hidden a wide label (e.g. "SCHEDULED" at 10px is
+   * ~68px but the column budget on a 5-column boarding-pass secondary row
+   * is ~44px) bleeds into the next column's space and visually runs into
+   * its label (producing "SCHEDULEDTERM"). Clipping here keeps columns
+   * structurally independent the way Wallet renders them on device. */
+  overflow: hidden;
 }
 
 .fieldLabel {
@@ -170,11 +176,22 @@
   text-transform: uppercase;
   opacity: 0.78;
   margin-bottom: 3px;
+  /* Uppercase labels are short, don't have natural break points, and
+   * Wallet itself clips with an ellipsis on narrow columns — match that
+   * behavior. word-break/overflow-wrap can't save "SCHEDULED" inside 44px. */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .fieldValue {
   font-size: 15px;
   font-weight: 400;
+  /* overflow-wrap:anywhere lets time-like strings ("6:55 AM") break at
+   * the space so the 44px column shows two lines instead of overflowing.
+   * word-break:break-word stays as a fallback for older UAs + long tokens
+   * without natural break points. */
+  overflow-wrap: anywhere;
   word-break: break-word;
   letter-spacing: -0.005em;
 }

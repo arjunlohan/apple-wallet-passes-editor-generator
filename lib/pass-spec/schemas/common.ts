@@ -46,7 +46,11 @@ export const iso8601DateTime = z
 /** ISO 4217 currency code (e.g., USD, EUR, JPY). 3 uppercase letters. */
 export const currencyCode = z.string().regex(/^[A-Z]{3}$/, "ISO 4217 code");
 
-const passFieldValue = z.union([z.string(), z.number()]);
+// A field's `value` must be present; empty strings render as a blank
+// labeled box on device, which is always a pass-authoring bug. Numbers
+// (including 0) are accepted as-is. `""` is rejected at the schema
+// boundary so hand-authored JSON can't silently ship a broken pass.
+const passFieldValue = z.union([z.string().min(1, "value must not be empty"), z.number()]);
 
 /** Sanitize `%@` requirement for change messages and URL-scheme safelist for attributed values. */
 const changeMessage = z

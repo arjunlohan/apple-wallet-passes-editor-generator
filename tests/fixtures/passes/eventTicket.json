@@ -22,7 +22,7 @@
       }
     ],
     "primaryFields": [
-      { "key": "section", "label": "General Admission", "value": "" }
+      { "key": "section", "label": "General Admission", "value": "GA" }
     ],
     "secondaryFields": [
       { "key": "sec", "label": "Sec", "value": "115" },

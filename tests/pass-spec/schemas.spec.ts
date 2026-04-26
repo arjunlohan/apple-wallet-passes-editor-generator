@@ -80,6 +80,28 @@ describe("PassDefinitionSchema - invalid cases", () => {
     expect(res.success).toBe(false);
   });
 
+  it("rejects empty-string field value", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const bad: any = structuredClone(generic);
+    bad.generic.primaryFields[0].value = "";
+    const res = PassDefinitionSchema.safeParse(bad);
+    expect(res.success).toBe(false);
+    if (!res.success) {
+      const issue = res.error.issues.find((i) =>
+        i.path.join(".").endsWith("primaryFields.0.value"),
+      );
+      expect(issue).toBeDefined();
+    }
+  });
+
+  it("accepts numeric zero as a field value (falsy but valid)", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const ok: any = structuredClone(generic);
+    ok.generic.primaryFields[0].value = 0;
+    const res = PassDefinitionSchema.safeParse(ok);
+    expect(res.success).toBe(true);
+  });
+
   it("rejects attributedValue outside backFields", () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const bad: any = structuredClone(generic);

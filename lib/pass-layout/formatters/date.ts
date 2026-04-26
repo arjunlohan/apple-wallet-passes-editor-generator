@@ -23,15 +23,31 @@ const STYLE_MAP: Record<DateStyle, "short" | "medium" | "long" | "full" | undefi
 export interface FormatDateOptions {
   dateStyle?: DateStyle;
   timeStyle?: DateStyle;
-  /** When true, treat the ISO string as device-local time regardless of offset. */
+  /**
+   * Apple-documented behavior (PassFieldContent.ignoresTimeZone):
+   *   false (default) — render in the device's current timezone.
+   *   true            — render the wall-clock encoded in `value`, i.e. use
+   *                     the timezone associated with the ISO string itself.
+   *
+   * Note the semantics: `true` does NOT mean "UTC". It means "whatever
+   * timezone the author wrote into the value." A value like
+   * `2026-09-12T20:00:00-04:00` with ignoresTimeZone=true should render
+   * `8:00 PM` (the author's wall-clock), not `12:00 AM` (UTC) and not
+   * the device-local translation.
+   */
   ignoresTimeZone?: boolean;
   /** When true, render as a relative date ("in 2 hours"). */
   isRelative?: boolean;
   /** Locale, for testing. Defaults to runtime locale. */
   locale?: string;
-  /** Used only when ignoresTimeZone: true; defaults to "UTC" for determinism. */
-  timeZone?: string;
 }
+
+// Capture the wall-clock fields + timezone suffix of an ISO 8601 value. The
+// suffix group is optional so bare values (no offset) round-trip as
+// "floating local" time — same behavior Apple documents for values that
+// omit a timezone designator.
+const ISO_PARTS_RE =
+  /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3}))?)?(Z|[+-]\d{2}:?\d{2})?$/;
 
 export function formatDateValue(
   value: string | number,
@@ -62,7 +78,35 @@ export function formatDateValue(
   const timeMapped = opts.timeStyle ? STYLE_MAP[opts.timeStyle] : undefined;
   if (dateMapped) options.dateStyle = dateMapped;
   if (timeMapped) options.timeStyle = timeMapped;
-  if (opts.ignoresTimeZone) options.timeZone = opts.timeZone ?? "UTC";
+
+  // When ignoresTimeZone is true, the visible string must match the wall-
+  // clock encoded in `value` — independent of the device's timezone. We
+  // parse the literal Y/M/D/H/M/S fields out of the ISO string, rebuild a
+  // Date as if those fields were UTC, and then ask Intl to format it in
+  // UTC. That gives "8:00 PM" for "2026-09-12T20:00:00-04:00" and
+  // "3:30 PM" for "2026-09-12T15:30:00" (bare local) regardless of the
+  // runtime TZ.
+  if (opts.ignoresTimeZone) {
+    const m = ISO_PARTS_RE.exec(value);
+    if (m) {
+      const [, y, mo, d, hh, mm, ss = "0", ms = "0"] = m;
+      const wall = new Date(
+        Date.UTC(
+          Number(y),
+          Number(mo) - 1,
+          Number(d),
+          Number(hh),
+          Number(mm),
+          Number(ss),
+          Number(ms.padEnd(3, "0")),
+        ),
+      );
+      options.timeZone = "UTC";
+      return new Intl.DateTimeFormat(opts.locale, options).format(wall);
+    }
+    // ISO didn't match — fall through to the device-tz path rather than
+    // producing a misleading UTC render.
+  }
 
   return new Intl.DateTimeFormat(opts.locale, options).format(date);
 }

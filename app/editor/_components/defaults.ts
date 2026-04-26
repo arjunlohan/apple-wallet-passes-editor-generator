@@ -1,5 +1,12 @@
 import type { PassStyle } from "@/lib/pass-spec";
 
+export interface EditorBeacon {
+  proximityUUID: string;
+  major: string;
+  minor: string;
+  relevantText: string;
+}
+
 export interface EditorFormValues {
   style: PassStyle;
   passTypeIdentifier: string;
@@ -51,14 +58,51 @@ export interface EditorFormValues {
   nfcEncryptionPublicKey: string; // Base64 DER SPKI of an ECDH P-256 key.
   nfcRequiresAuthentication: boolean;
 
+  // Top-level capability gaps (Apple spec properties beyond core identity).
+  // All optional; emit only when non-empty so passes stay minimal.
+  expirationDate: string; // ISO 8601.
+  voided: boolean;
+  sharingProhibited: boolean;
+  suppressStripShine: boolean;
+  groupingIdentifier: string;
+  appLaunchURL: string;
+  webServiceURL: string;
+  authenticationToken: string;
+  associatedStoreIdentifiers: string; // Comma-separated numbers.
+  userInfoJson: string; // Raw JSON string. Parsed+validated before emit.
+  beacons: EditorBeacon[];
+
   // Base64-encoded PNG bytes, keyed slot.variantKey (e.g., "icon.2x").
   assets: Record<string, string>;
 }
 
+/**
+ * A single field row. `key/label/value` are always set; the rest mirror
+ * Apple's PassFieldContent — exposed under a per-row "Formatting" disclosure
+ * so simple passes stay simple. Empty strings/undefined are dropped at
+ * emit time so the schema never sees incomplete formatting directives.
+ */
 export interface EditorField {
   key: string;
   label: string;
   value: string;
+  // Date/time formatting (for ISO 8601 values).
+  dateStyle: string; // "" | one of DATE_STYLES.
+  timeStyle: string; // "" | one of DATE_STYLES.
+  ignoresTimeZone: boolean;
+  isRelative: boolean;
+  // Numeric formatting.
+  numberStyle: string; // "" | one of NUMBER_STYLES.
+  currencyCode: string; // "" | ISO 4217 (e.g. USD).
+  // Layout.
+  textAlignment: string; // "" | one of TEXT_ALIGNMENTS.
+  // Dynamic updates.
+  changeMessage: string; // Must contain %@ when set.
+  // Back-field only.
+  attributedValue: string; // <a href="https://..."> only.
+  dataDetectorTypes: string; // Comma-separated subset of DATA_DETECTOR_TYPES.
+  // Boarding pass only: 0 or 1, "" for unset.
+  row: string;
 }
 
 /**
@@ -84,6 +128,36 @@ export interface EditorDefaultsOverride {
 }
 
 /**
+ * Partial field used inside the per-style templates. Templates only set
+ * key/label/value — `toField()` fills the rest with sane defaults so
+ * every template row still validates.
+ */
+type TemplateField = Pick<EditorField, "key" | "label" | "value"> & Partial<EditorField>;
+
+export function emptyField(): EditorField {
+  return {
+    key: "",
+    label: "",
+    value: "",
+    dateStyle: "",
+    timeStyle: "",
+    ignoresTimeZone: false,
+    isRelative: false,
+    numberStyle: "",
+    currencyCode: "",
+    textAlignment: "",
+    changeMessage: "",
+    attributedValue: "",
+    dataDetectorTypes: "",
+    row: "",
+  };
+}
+
+function toField(partial: TemplateField): EditorField {
+  return { ...emptyField(), ...partial };
+}
+
+/**
  * Shape of a per-style template: ONLY the style-specific fields. Merged
  * with the shared defaults in `defaultValues()`. Each template should
  * fully populate the fields that make this style visually distinct —
@@ -96,12 +170,12 @@ interface StyleTemplate {
   backgroundColorHex: string;
   foregroundColorHex: string;
   labelColorHex: string;
-  headerFields: EditorField[];
-  primaryFields: EditorField[];
-  secondaryFields: EditorField[];
-  auxiliaryFields: EditorField[];
-  backFields: EditorField[];
-  additionalInfoFields?: EditorField[];
+  headerFields: TemplateField[];
+  primaryFields: TemplateField[];
+  secondaryFields: TemplateField[];
+  auxiliaryFields: TemplateField[];
+  backFields: TemplateField[];
+  additionalInfoFields?: TemplateField[];
   transitType?: string;
   barcodeFormat: string;
   barcodeMessage: string;
@@ -156,7 +230,13 @@ const BOARDING_PASS_TEMPLATE: StyleTemplate = {
     { key: "flight", label: "Flight", value: "SK204" },
   ],
   auxiliaryFields: [
-    { key: "boards", label: "Boards", value: "2026-09-12T18:40:00Z" },
+    {
+      key: "boards",
+      label: "Boards",
+      value: "2026-09-12T18:40:00Z",
+      dateStyle: "PKDateStyleNone",
+      timeStyle: "PKDateStyleShort",
+    },
     { key: "seat", label: "Seat", value: "14A" },
     { key: "class", label: "Class", value: "Economy" },
   ],
@@ -206,10 +286,22 @@ const COUPON_TEMPLATE: StyleTemplate = {
     { key: "promo", label: "PROMO CODE", value: "MOON20" },
   ],
   secondaryFields: [
-    { key: "expires", label: "Expires", value: "2026-12-31T23:59:00Z" },
+    {
+      key: "expires",
+      label: "Expires",
+      value: "2026-12-31T23:59:00Z",
+      dateStyle: "PKDateStyleMedium",
+      timeStyle: "PKDateStyleNone",
+    },
   ],
   auxiliaryFields: [
-    { key: "terms", label: "Min. Order", value: "$15.00" },
+    {
+      key: "minimum",
+      label: "Min. Order",
+      value: "15.00",
+      numberStyle: "PKNumberStyleDecimal",
+      currencyCode: "USD",
+    },
   ],
   backFields: [
     {
@@ -245,6 +337,8 @@ const EVENT_TICKET_TEMPLATE: StyleTemplate = {
       key: "date",
       label: "DATE",
       value: "2026-06-10T19:00:00Z",
+      dateStyle: "PKDateStyleMedium",
+      timeStyle: "PKDateStyleShort",
     },
   ],
   primaryFields: [
@@ -299,10 +393,21 @@ const STORE_CARD_TEMPLATE: StyleTemplate = {
   labelColorHex: "#fed7aa",
   headerFields: [{ key: "tier", label: "TIER", value: "Gold" }],
   primaryFields: [
-    { key: "balance", label: "BALANCE", value: "$42.50" },
+    {
+      key: "balance",
+      label: "BALANCE",
+      value: "42.50",
+      numberStyle: "PKNumberStyleDecimal",
+      currencyCode: "USD",
+    },
   ],
   secondaryFields: [
-    { key: "points", label: "Points", value: "1,240" },
+    {
+      key: "points",
+      label: "Points",
+      value: "1240",
+      numberStyle: "PKNumberStyleDecimal",
+    },
     { key: "since", label: "Member Since", value: "2024" },
   ],
   auxiliaryFields: [
@@ -355,12 +460,12 @@ export function defaultValues(
     foregroundColorHex: t.foregroundColorHex,
     labelColorHex: t.labelColorHex,
 
-    headerFields: deepClone(t.headerFields),
-    primaryFields: deepClone(t.primaryFields),
-    secondaryFields: deepClone(t.secondaryFields),
-    auxiliaryFields: deepClone(t.auxiliaryFields),
-    backFields: deepClone(t.backFields),
-    additionalInfoFields: deepClone(t.additionalInfoFields ?? []),
+    headerFields: t.headerFields.map(toField),
+    primaryFields: t.primaryFields.map(toField),
+    secondaryFields: t.secondaryFields.map(toField),
+    auxiliaryFields: t.auxiliaryFields.map(toField),
+    backFields: t.backFields.map(toField),
+    additionalInfoFields: (t.additionalInfoFields ?? []).map(toField),
 
     transitType: t.transitType ?? "PKTransitTypeGeneric",
 
@@ -388,6 +493,18 @@ export function defaultValues(
     nfcMessage: "",
     nfcEncryptionPublicKey: "",
     nfcRequiresAuthentication: false,
+
+    expirationDate: "",
+    voided: false,
+    sharingProhibited: false,
+    suppressStripShine: false,
+    groupingIdentifier: "",
+    appLaunchURL: "",
+    webServiceURL: "",
+    authenticationToken: "",
+    associatedStoreIdentifiers: "",
+    userInfoJson: "",
+    beacons: [],
 
     assets: {},
   };

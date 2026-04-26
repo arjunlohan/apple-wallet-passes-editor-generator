@@ -45,18 +45,42 @@ import eventTicket from "../../tests/fixtures/passes/eventTicket.json";
 import generic from "../../tests/fixtures/passes/generic.json";
 import posterEventTicket from "../../tests/fixtures/passes/posterEventTicket.json";
 import storeCard from "../../tests/fixtures/passes/storeCard.json";
+import { FIDELITY_FIXTURES, type FidelityFixture } from "../../tests/fixtures/passes/generated";
 
-const STYLES = [
-  { key: "boardingPass", fixture: boardingPass },
-  { key: "coupon", fixture: coupon },
-  { key: "eventTicket", fixture: eventTicket },
-  { key: "generic", fixture: generic },
-  { key: "posterEventTicket", fixture: posterEventTicket },
-  { key: "storeCard", fixture: storeCard },
-] as const;
+/**
+ * Canonical 6 style-level fixtures (one per pass style + poster). Kept so
+ * `npm run fidelity` without flags still captures the minimum one-per-style
+ * reference set. The expanded 50 fixtures from `generated.ts` are appended
+ * after — set `FIDELITY_MINIMAL=1` to run only the canonical six.
+ */
+const CANONICAL_STYLES: readonly { key: string; fixture: Record<string, unknown>; assetKinds?: readonly string[] }[] = [
+  { key: "boardingPass", fixture: boardingPass, assetKinds: ["icon", "logo", "footer"] },
+  { key: "coupon", fixture: coupon, assetKinds: ["icon", "logo", "strip"] },
+  { key: "eventTicket", fixture: eventTicket, assetKinds: ["icon", "logo", "strip"] },
+  { key: "generic", fixture: generic, assetKinds: ["icon", "logo", "thumbnail"] },
+  { key: "posterEventTicket", fixture: posterEventTicket, assetKinds: ["icon", "logo", "background", "thumbnail"] },
+  { key: "storeCard", fixture: storeCard, assetKinds: ["icon", "logo", "strip"] },
+];
+
+const MINIMAL = process.env.FIDELITY_MINIMAL === "1";
+const STYLES: readonly { key: string; fixture: Record<string, unknown>; assetKinds?: readonly string[] }[] = MINIMAL
+  ? CANONICAL_STYLES
+  : [
+      ...CANONICAL_STYLES,
+      ...FIDELITY_FIXTURES.map((f: FidelityFixture) => ({
+        key: f.key,
+        fixture: f.fixture as Record<string, unknown>,
+        assetKinds: f.assetKinds,
+      })),
+    ];
 
 const OUT_ROOT = process.env.FIDELITY_OUT ?? "/tmp/wallet-fidelity";
 const SHOW_BACK = process.env.FIDELITY_BACK === "1";
+// Skip the Pass Viewer side of the harness. Useful when running headless
+// or without Screen Recording / Automation permission granted to the
+// terminal — previews + signed pkpass files are still produced so you can
+// double-click any pkpass to inspect Wallet's own render.
+const NO_WALLET = process.env.FIDELITY_NO_WALLET === "1";
 // Harness runs its own Next server on a non-standard port so it doesn't
 // collide with an already-running `npm run dev`. We use production mode
 // (`next start`) because Turbopack's HMR WebSocket doesn't reliably
@@ -83,25 +107,28 @@ async function run() {
   const { IMAGE_DIMENSION_RULES } = await import("@/lib/pass-spec");
   const { makePng } = await import("../../tests/pass-generator/helpers/tinyPng");
 
-  const iconRule = IMAGE_DIMENSION_RULES.icon.exact!;
-  const bgRule = IMAGE_DIMENSION_RULES.background.exact!;
-  const classicAssets = {
-    icon: {
-      "1x": makePng(iconRule.width, iconRule.height),
-      "2x": makePng(iconRule.width * 2, iconRule.height * 2),
-      "3x": makePng(iconRule.width * 3, iconRule.height * 3),
-    },
-  } as const;
-  // Poster-mode passes need a `background.png` set or Wallet silently
-  // downgrades to the classic eventTicket scheme. See tasks/lessons.md.
-  const posterAssets = {
-    ...classicAssets,
-    background: {
-      "1x": makePng(bgRule.width, bgRule.height),
-      "2x": makePng(bgRule.width * 2, bgRule.height * 2),
-      "3x": makePng(bgRule.width * 3, bgRule.height * 3),
-    },
-  } as const;
+  type ImageSlot = keyof typeof IMAGE_DIMENSION_RULES;
+
+  /**
+   * Build synthetic PNGs at the schema-required dimensions for every slot
+   * the fixture declares. `exact` slots use the exact size; max-only slots
+   * (logo, strip, footer) use their max. All 3 scale factors are always
+   * emitted since the generator requires them as a group.
+   */
+  function buildAssets(kinds: readonly ImageSlot[]): Record<string, Record<string, Uint8Array>> {
+    const out: Record<string, Record<string, Uint8Array>> = {};
+    for (const slot of kinds) {
+      const rule = IMAGE_DIMENSION_RULES[slot];
+      const w = rule.exact?.width ?? rule.width?.max ?? 160;
+      const h = rule.exact?.height ?? rule.height?.max ?? 50;
+      out[slot] = {
+        "1x": makePng(w, h),
+        "2x": makePng(w * 2, h * 2),
+        "3x": makePng(w * 3, h * 3),
+      };
+    }
+    return out;
+  }
 
   let signer;
   try {
@@ -112,9 +139,24 @@ async function run() {
     process.exit(1);
   }
 
+  // Pass Viewer verifies the signed-cert identifiers against the pass's
+  // passTypeIdentifier + teamIdentifier. All committed fixtures use
+  // placeholder values (pass.example.demo / ABCDE12345) so they don't leak
+  // personal credentials into the repo. The harness substitutes the real
+  // values at runtime from .env.local so generated passes actually open in
+  // Pass Viewer. Without this the ZIP is structurally valid but silently
+  // rejected by the viewer.
+  const realPassTypeId = process.env.APPLE_PASS_TYPE_IDENTIFIER ?? null;
+  const realTeamId = process.env.APPLE_TEAM_IDENTIFIER ?? null;
+  function fixupFixture(f: Record<string, unknown>): Record<string, unknown> {
+    if (!realPassTypeId || !realTeamId) return f;
+    return { ...f, passTypeIdentifier: realPassTypeId, teamIdentifier: realTeamId };
+  }
+
   const browser = await chromium.launch({ headless: true });
   try {
-    for (const { key, fixture } of STYLES) {
+    console.log(`[harness] processing ${STYLES.length} fixture${STYLES.length === 1 ? "" : "s"}`);
+    for (const { key, fixture, assetKinds } of STYLES) {
       const styleDir = join(OUT_ROOT, key);
       mkdirSync(styleDir, { recursive: true });
 
@@ -125,9 +167,10 @@ async function run() {
       await capturePreview(browser, key, face, previewPath);
 
       console.log(`[${key}] generating signed .pkpass…`);
-      const assetsForStyle = key === "posterEventTicket" ? posterAssets : classicAssets;
+      const slots = (assetKinds ?? ["icon", "logo"]) as ImageSlot[];
+      const assetsForStyle = buildAssets(slots);
       const { bytes } = generatePkpass({
-        definition: fixture,
+        definition: fixupFixture(fixture),
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         assets: assetsForStyle as any,
         signer,
@@ -135,20 +178,22 @@ async function run() {
       const pkpassPath = join(styleDir, `${key}.pkpass`);
       writeFileSync(pkpassPath, bytes);
 
-      console.log(`[${key}] opening in Pass Viewer…`);
       const walletPath = join(styleDir, `wallet-${face}.png`);
-      try {
-        // Pass Viewer titles its window after the pass's organizationName.
-        // Gate the capture on that so we never screenshot a stale window
-        // from the previous iteration.
-        const expectedTitle = (fixture as { organizationName?: string })
-          .organizationName ?? "Pass";
-        await capturePassViewer(pkpassPath, walletPath, expectedTitle);
-      } catch (err) {
-        console.warn(`[${key}] Pass Viewer capture failed: ${err instanceof Error ? err.message : err}`);
+      if (!NO_WALLET) {
+        console.log(`[${key}] opening in Pass Viewer…`);
+        try {
+          // Pass Viewer titles its window after the pass's organizationName.
+          // Gate the capture on that so we never screenshot a stale window
+          // from the previous iteration.
+          const expectedTitle = (fixture as { organizationName?: string })
+            .organizationName ?? "Pass";
+          await capturePassViewer(pkpassPath, walletPath, expectedTitle);
+        } catch (err) {
+          console.warn(`[${key}] Pass Viewer capture failed: ${err instanceof Error ? err.message : err}`);
+        }
       }
 
-      writeReport(styleDir, key, previewPath, walletPath);
+      writeReport(styleDir, key, previewPath, walletPath, NO_WALLET);
     }
     writeIndex();
     console.log(`\n✓ Report: ${join(OUT_ROOT, "index.md")}`);
@@ -432,8 +477,20 @@ function writeReport(
   style: string,
   previewPath: string,
   walletPath: string,
+  previewOnly: boolean = false,
 ): void {
-  const md = `# ${style} — fidelity comparison
+  const md = previewOnly
+    ? `# ${style} — preview capture
+
+Generated ${new Date().toISOString()}
+
+| Editor preview |
+|---|
+| ![preview](${relativeFromDir(styleDir, previewPath)}) |
+
+Pass file: \`${style}.pkpass\` (in this folder; open it with \`open ${style}.pkpass\` to compare against Wallet's own render).
+`
+    : `# ${style} — fidelity comparison
 
 Generated ${new Date().toISOString()}
 
@@ -447,19 +504,25 @@ Pass file: \`${style}.pkpass\` (in this folder; re-open with \`open ${style}.pkp
 }
 
 function writeIndex(): void {
+  const face = SHOW_BACK ? "back" : "front";
+  const header = NO_WALLET
+    ? "| Fixture | Preview | Pass (pkpass) | Report |\n|---|---|---|---|"
+    : "| Fixture | Preview | Wallet | Report |\n|---|---|---|---|";
+  const rows = STYLES.map(({ key }) =>
+    NO_WALLET
+      ? `| \`${key}\` | [preview](${key}/preview-${face}.png) | [${key}.pkpass](${key}/${key}.pkpass) | [report.md](${key}/report.md) |`
+      : `| \`${key}\` | [preview](${key}/preview-${face}.png) | [wallet](${key}/wallet-${face}.png) | [report.md](${key}/report.md) |`,
+  );
   const lines = [
     "# Wallet fidelity report",
     "",
     `Generated ${new Date().toISOString()}`,
+    `Face: **${face}** · Fixtures: **${STYLES.length}** · Mode: **${NO_WALLET ? "preview-only" : "side-by-side"}**`,
     "",
-    "| Style | Preview | Wallet | Diff report |",
-    "|---|---|---|---|",
-    ...STYLES.map(({ key }) => {
-      const face = SHOW_BACK ? "back" : "front";
-      return `| \`${key}\` | [preview](${key}/preview-${face}.png) | [wallet](${key}/wallet-${face}.png) | [report.md](${key}/report.md) |`;
-    }),
+    header,
+    ...rows,
     "",
-    "Regenerate with `npm run fidelity`. To compare back faces, `FIDELITY_BACK=1 npm run fidelity`.",
+    "Regenerate with `npm run fidelity`. `FIDELITY_BACK=1` for back faces. `FIDELITY_MINIMAL=1` for the 6 canonical styles. `FIDELITY_NO_WALLET=1` to skip the Pass Viewer capture (useful without Screen Recording / Automation permission).",
   ];
   writeFileSync(join(OUT_ROOT, "index.md"), lines.join("\n"));
 }

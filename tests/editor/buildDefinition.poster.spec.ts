@@ -1,12 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { buildDefinitionFromForm } from "@/app/editor/_components/buildDefinition";
-import type { EditorFormValues } from "@/app/editor/_components/defaults";
+import { defaultValues, emptyField, type EditorFormValues } from "@/app/editor/_components/defaults";
 
 function eventTicketValues(): EditorFormValues {
   return {
-    style: "eventTicket",
-    passTypeIdentifier: "pass.example.demo",
-    teamIdentifier: "ABCDE12345",
+    ...defaultValues("eventTicket"),
     serialNumber: "evt-0001",
     organizationName: "Example Co",
     description: "Event ticket",
@@ -15,18 +13,13 @@ function eventTicketValues(): EditorFormValues {
     foregroundColorHex: "#f8fafc",
     labelColorHex: "#94a3b8",
     headerFields: [],
-    primaryFields: [{ key: "section", label: "GA", value: "GA" }],
+    primaryFields: [{ ...emptyField(), key: "section", label: "GA", value: "GA" }],
     secondaryFields: [],
     auxiliaryFields: [],
     backFields: [],
     additionalInfoFields: [],
-    transitType: "PKTransitTypeGeneric",
-    barcodeFormat: "PKBarcodeFormatQR",
-    barcodeMessage: "evt-0001",
-    barcodeEncoding: "iso-8859-1",
     barcodeAltText: "",
     useEventTicketPoster: true,
-    suppressHeaderDarkening: false,
     posterEventName: "Fallen Voices Live",
     posterVenueName: "Apollo Theater",
     posterVenueRegionName: "New York, NY",
@@ -34,15 +27,8 @@ function eventTicketValues(): EditorFormValues {
     posterEventType: "PKEventTypeLivePerformance",
     posterEventStartDate: "2026-09-12T20:00:00Z",
     posterPerformerNames: "Phoenix Rivers",
-    posterAwayTeamAbbreviation: "",
-    posterHomeTeamAbbreviation: "",
     locations: [],
     relevantDates: [],
-    useNfc: false,
-    nfcMessage: "",
-    nfcEncryptionPublicKey: "",
-    nfcRequiresAuthentication: false,
-    assets: {},
   };
 }
 
