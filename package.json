@@ -2,7 +2,30 @@
   "name": "apple-wallet-passes-editor-generator",
   "version": "0.1.0",
   "private": true,
+  "description": "Open-source editor and generator for Apple Wallet .pkpass files. What you see in the live preview matches the signed pass, pixel-for-pixel.",
   "license": "MIT",
+  "author": {
+    "name": "Arjun Lohan"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/arjunlohan/apple-wallet-passes-editor-generator.git"
+  },
+  "homepage": "https://github.com/arjunlohan/apple-wallet-passes-editor-generator#readme",
+  "bugs": {
+    "url": "https://github.com/arjunlohan/apple-wallet-passes-editor-generator/issues"
+  },
+  "keywords": [
+    "apple-wallet",
+    "pkpass",
+    "passkit",
+    "pass-generator",
+    "pass-editor",
+    "wallet-pass",
+    "next",
+    "react",
+    "shadcn"
+  ],
   "scripts": {
     "dev": "next dev",
     "build": "next build",

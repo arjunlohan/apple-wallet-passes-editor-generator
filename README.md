@@ -6,14 +6,18 @@ MIT licensed. Designed to be forked and embedded in other apps: the spec, layout
 
 ## Status
 
-**v0.1.0** ships all five classic pass styles — `boardingPass`, `coupon`, `eventTicket`, `generic`, `storeCard` — with the full barcode set (QR, PDF417, Aztec, Code128) and the complete image asset matrix (1x / 2x / 3x + `~dark` variants).
+**v0.1.0** ships all five classic pass styles — `boardingPass`, `coupon`, `eventTicket`, `generic`, `storeCard` — with the full barcode set (QR, PDF417, Aztec, Code128) and the complete image asset matrix (1x / 2x / 3x + `~dark` variants). The editor surfaces lock-screen relevance (locations + relevant dates) and the iOS 26 poster event ticket as opt-in controls.
+
+The editor UI uses shadcn/ui on Tailwind v4: a 5-card template gallery at the top, per-style drafts that survive template swaps, an accordion for `Identity · Content · Media · Barcode · Advanced`, inline Zod validation with a sticky issue tray, and a single-drop image uploader that auto-generates @1x/@2x/@3x with an optional dark-mode variant.
 
 Out of scope for v0.1.0 (tracked in `tasks/todo.md` for later milestones):
 - Self-hosted Wallet web service (register/unregister/update endpoints, APNs push).
 - Personalization token exchange.
-- iOS 18+ poster event-ticket layout.
 - Localization (`.lproj`).
-- NFC runtime, semantic-tag-driven layouts, relevance locations/dates.
+
+Partially shipped / needs an Apple entitlement:
+- **iOS 26 poster event ticket.** Schema, semantic tags, and editor controls are wired. On iOS 26 the poster layout only activates when the pass ships with an `nfc` block — that requires [Apple's NFC Pass entitlement](https://developer.apple.com/contact/request/wallet-nfc). Without it the pass still installs and renders as the classic event ticket.
+- **NFC.** The schema accepts and signs an `nfc` dictionary; the editor does not expose a form for it (would be dead UI for anyone without the entitlement).
 
 ## Architecture
 
@@ -34,7 +38,7 @@ cp .env.example .env.local
 # Fill in your Apple Pass Type ID credentials in .env.local
 
 npm run dev          # editor at http://localhost:3000/editor
-npm test             # 55 tests across spec, layout, preview, generator
+npm test             # 89 tests across spec, layout, preview, generator
 npm run build        # Next.js production build
 ```
 

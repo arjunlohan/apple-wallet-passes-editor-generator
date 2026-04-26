@@ -1,3 +1,5 @@
+> **Maintainer note:** this file captures the AI-assistant (Claude Code) conventions used while building this repo. External contributors can safely ignore it — it's loaded automatically by Claude Code and has no effect on `npm run` or CI.
+
 @AGENTS.md
 
 ## Workflow Defaults
