@@ -226,7 +226,12 @@ function PosterRequirementsChecklist() {
     <Alert>
       <AlertTitle>Poster activation checklist (iOS 26+)</AlertTitle>
       <AlertDescription>
-        <ul className="mt-2 flex flex-col gap-2.5">
+        <p className="mt-1 text-xs text-muted-foreground">
+          The preview renders the classic event ticket until every requirement is met.
+          Apple activates the poster layout only when all three check. Without an NFC
+          entitlement the last row can&apos;t be ticked, so the preview stays classic.
+        </p>
+        <ul className="mt-3 flex flex-col gap-2.5">
           <CheckRow
             state={semanticsOK ? "ok" : "miss"}
             label="Required semantic tags filled"
@@ -238,9 +243,9 @@ function PosterRequirementsChecklist() {
             note="Upload a background image at 180×220 (1x). Wallet needs background.* or artwork.* for poster rendering."
           />
           <CheckRow
-            state="warn"
-            label="NFC entitlement + nfc dictionary"
-            note="Apple requires poster passes to ship with an NFC block — which needs a special entitlement. Without it, the pass installs but renders as classic event ticket. Poster passes are NOT barcode-scannable."
+            state="miss"
+            label="NFC entitlement + nfc dictionary (not supported in this editor)"
+            note="Apple requires poster passes to ship with an NFC block, which needs a special entitlement. This editor doesn't expose an NFC form yet — so poster mode cannot activate. The pass still installs and renders as the classic event ticket."
           />
         </ul>
       </AlertDescription>

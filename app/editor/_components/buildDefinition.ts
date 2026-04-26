@@ -33,16 +33,19 @@ export function buildDefinitionFromForm(values: EditorFormValues): unknown {
     ];
   }
 
-  // Poster event ticket (iOS 26+). Only relevant on eventTicket; we write
-  // preferredStyleSchemes + the required semantic tags so Wallet knows to
-  // switch to the poster layout. While the user is still filling in the
-  // required semantics, emit semantics but NOT the scheme — so the live
-  // preview renders the classic layout until every required tag is set.
+  // Poster event ticket (iOS 26+). Only relevant on eventTicket; we still
+  // write the semantic tags so the pass.json round-trips cleanly, but we
+  // DO NOT emit `preferredStyleSchemes` unless an `nfc` block is present.
+  // Apple ignores the poster scheme entirely on a pass without NFC and
+  // falls back to the classic event ticket — so the honest preview is the
+  // classic layout too. Once we add NFC form fields (requires Apple's NFC
+  // entitlement), flip the `hasNfc` check below to read from those values.
   if (style === "eventTicket" && values.useEventTicketPoster) {
     const semantics = buildPosterSemantics(values);
     if (Object.keys(semantics).length > 0) base.semantics = semantics;
+    const hasNfc = false; // TODO: wire to NFC form fields when they exist.
     const requiredFilled = isPosterReady(values);
-    if (requiredFilled) {
+    if (requiredFilled && hasNfc) {
       base.preferredStyleSchemes = ["posterEventTicket", "eventTicket"];
       if (values.suppressHeaderDarkening) base.suppressHeaderDarkening = true;
     }
