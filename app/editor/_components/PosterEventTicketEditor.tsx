@@ -198,6 +198,9 @@ function PosterRequirementsChecklist() {
     homeAbbr,
     performers,
     assets,
+    useNfc,
+    nfcMessage,
+    nfcKey,
   ] = watch([
     "posterEventName",
     "posterVenueName",
@@ -208,11 +211,15 @@ function PosterRequirementsChecklist() {
     "posterHomeTeamAbbreviation",
     "posterPerformerNames",
     "assets",
+    "useNfc",
+    "nfcMessage",
+    "nfcEncryptionPublicKey",
   ]);
 
   const filled = (v: string) => v.trim().length > 0;
   const hasBackground =
     !!assets["background.1x"] && !!assets["background.2x"] && !!assets["background.3x"];
+  const nfcOK = useNfc && filled(nfcMessage) && filled(nfcKey);
   const semanticsOK =
     filled(eventName) &&
     filled(venueName) &&
@@ -227,9 +234,8 @@ function PosterRequirementsChecklist() {
       <AlertTitle>Poster activation checklist (iOS 26+)</AlertTitle>
       <AlertDescription>
         <p className="mt-1 text-xs text-muted-foreground">
-          The preview renders the classic event ticket until every requirement is met.
-          Apple activates the poster layout only when all three check. Without an NFC
-          entitlement the last row can&apos;t be ticked, so the preview stays classic.
+          The preview renders the classic event ticket until all three rows check.
+          Apple activates the poster layout only when every requirement is met.
         </p>
         <ul className="mt-3 flex flex-col gap-2.5">
           <CheckRow
@@ -243,9 +249,9 @@ function PosterRequirementsChecklist() {
             note="Upload a background image at 180×220 (1x). Wallet needs background.* or artwork.* for poster rendering."
           />
           <CheckRow
-            state="miss"
-            label="NFC entitlement + nfc dictionary (not supported in this editor)"
-            note="Apple requires poster passes to ship with an NFC block, which needs a special entitlement. This editor doesn't expose an NFC form yet — so poster mode cannot activate. The pass still installs and renders as the classic event ticket."
+            state={nfcOK ? "ok" : "miss"}
+            label="NFC dictionary"
+            note="Toggle NFC on in the Advanced section and fill in the message + encryption public key. Poster passes require an NFC block — and an Apple NFC entitlement — to activate. Poster passes are NOT barcode-scannable by design."
           />
         </ul>
       </AlertDescription>

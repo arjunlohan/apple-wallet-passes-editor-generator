@@ -43,6 +43,14 @@ function mapPath(segments: (string | number)[], style: PassStyle): string {
     return segments.join(".");
   }
 
+  if (head === "nfc") {
+    const field = rest[0];
+    if (field === "message") return "nfcMessage";
+    if (field === "encryptionPublicKey") return "nfcEncryptionPublicKey";
+    if (field === "requiresAuthentication") return "nfcRequiresAuthentication";
+    return segments.join(".");
+  }
+
   if (head === "semantics") {
     const tag = rest[0];
     const suffix: Record<string, string> = {

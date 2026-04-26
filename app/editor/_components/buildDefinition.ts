@@ -33,19 +33,24 @@ export function buildDefinitionFromForm(values: EditorFormValues): unknown {
     ];
   }
 
+  // NFC (Value Added Services). Apple requires a special entitlement for
+  // this — without it the keys still ship but Wallet ignores them. The
+  // editor exposes the fields anyway so people with the entitlement can
+  // use the tool. Only emit when both required properties are filled.
+  const nfc = buildNfc(values);
+  if (nfc) base.nfc = nfc;
+
   // Poster event ticket (iOS 26+). Only relevant on eventTicket; we still
-  // write the semantic tags so the pass.json round-trips cleanly, but we
-  // DO NOT emit `preferredStyleSchemes` unless an `nfc` block is present.
-  // Apple ignores the poster scheme entirely on a pass without NFC and
-  // falls back to the classic event ticket — so the honest preview is the
-  // classic layout too. Once we add NFC form fields (requires Apple's NFC
-  // entitlement), flip the `hasNfc` check below to read from those values.
+  // write the semantic tags so the pass.json round-trips cleanly. Apple
+  // silently falls back to the classic ticket on a pass without NFC, so
+  // we only emit `preferredStyleSchemes` when the NFC block is present
+  // AND every required semantic tag is filled — keeping the preview
+  // honest about what Wallet will actually render.
   if (style === "eventTicket" && values.useEventTicketPoster) {
     const semantics = buildPosterSemantics(values);
     if (Object.keys(semantics).length > 0) base.semantics = semantics;
-    const hasNfc = false; // TODO: wire to NFC form fields when they exist.
     const requiredFilled = isPosterReady(values);
-    if (requiredFilled && hasNfc) {
+    if (requiredFilled && nfc) {
       base.preferredStyleSchemes = ["posterEventTicket", "eventTicket"];
       if (values.suppressHeaderDarkening) base.suppressHeaderDarkening = true;
     }
@@ -147,6 +152,25 @@ function buildPosterSemantics(values: EditorFormValues): Record<string, unknown>
     .map((s) => s.trim())
     .filter(Boolean);
   if (performers.length > 0) out.performerNames = performers;
+  return out;
+}
+
+/**
+ * Build the Apple `nfc` dictionary from the editor form. Returns null when
+ * NFC is toggled off OR either required property is missing — so the
+ * live preview stays valid while the user is still pasting the public
+ * key. The schema enforces the ≤64-byte message + base64 SPKI checks.
+ */
+function buildNfc(values: EditorFormValues): Record<string, unknown> | null {
+  if (!values.useNfc) return null;
+  const message = values.nfcMessage.trim();
+  const key = values.nfcEncryptionPublicKey.trim();
+  if (message === "" || key === "") return null;
+  const out: Record<string, unknown> = {
+    message,
+    encryptionPublicKey: key,
+  };
+  if (values.nfcRequiresAuthentication) out.requiresAuthentication = true;
   return out;
 }
 

@@ -15,9 +15,9 @@ Out of scope for v0.1.0 (tracked in `tasks/todo.md` for later milestones):
 - Personalization token exchange.
 - Localization (`.lproj`).
 
-Library-complete / editor does not expose yet:
-- **iOS 26 poster event ticket.** The schema, layout, and generator fully support it — library consumers can build a poster pass by passing `preferredStyleSchemes: ["posterEventTicket", "eventTicket"]` + semantic tags + an `nfc` block. The editor collects the semantic tags so the pass.json round-trips cleanly, but intentionally does NOT emit `preferredStyleSchemes` because it can't populate an `nfc` block — Apple would ignore the scheme without NFC and fall back to the classic layout. The editor preview matches what Apple Wallet will actually render: classic.
-- **NFC.** Schema accepts and signs an `nfc` dictionary; the editor does not expose a form for it. Adding NFC support is gated on having [Apple's NFC Pass entitlement](https://developer.apple.com/contact/request/wallet-nfc).
+Needs Apple's NFC entitlement to activate on-device:
+- **NFC (Value Added Services).** The editor exposes the full `nfc` dictionary — `message`, base64 SPKI `encryptionPublicKey` (ECDH P-256), and `requiresAuthentication`. Schema validates the 64-byte message cap and the SPKI shape. Any pass with an `nfc` block still signs and installs without the entitlement; Apple just ignores it at runtime. Request access at [developer.apple.com/contact/request/wallet-nfc](https://developer.apple.com/contact/request/wallet-nfc).
+- **iOS 26 poster event ticket.** The schema, layout, and generator support it; the editor emits `preferredStyleSchemes` only when the NFC block + every required semantic tag are present. Apple silently falls back to the classic event ticket without NFC, so the editor preview matches Wallet's actual behavior.
 
 ## Architecture
 

@@ -39,6 +39,10 @@ function baseValues(): EditorFormValues {
     posterHomeTeamAbbreviation: "",
     locations: [],
     relevantDates: [],
+    useNfc: false,
+    nfcMessage: "",
+    nfcEncryptionPublicKey: "",
+    nfcRequiresAuthentication: false,
     assets: {},
   };
 }

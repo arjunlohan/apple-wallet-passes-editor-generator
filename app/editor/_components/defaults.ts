@@ -44,6 +44,13 @@ export interface EditorFormValues {
   locations: EditorLocation[];
   relevantDates: EditorRelevantDate[];
 
+  // NFC (Value Added Services). Requires Apple's NFC Pass entitlement —
+  // without it the keys still serialize but Wallet ignores them at install.
+  useNfc: boolean;
+  nfcMessage: string;
+  nfcEncryptionPublicKey: string; // Base64 DER SPKI of an ECDH P-256 key.
+  nfcRequiresAuthentication: boolean;
+
   // Base64-encoded PNG bytes, keyed slot.variantKey (e.g., "icon.2x").
   assets: Record<string, string>;
 }
@@ -376,6 +383,11 @@ export function defaultValues(
 
     locations: deepClone(t.locations),
     relevantDates: deepClone(t.relevantDates),
+
+    useNfc: false,
+    nfcMessage: "",
+    nfcEncryptionPublicKey: "",
+    nfcRequiresAuthentication: false,
 
     assets: {},
   };
