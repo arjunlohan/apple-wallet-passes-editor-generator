@@ -1,5 +1,7 @@
 > **Maintainer note:** this file captures the AI-assistant (Claude Code) conventions used while building this repo. External contributors can safely ignore it — it's loaded automatically by Claude Code and has no effect on `npm run` or CI.
 
+> **Consumer-mode note (if you're a Claude Code agent in a _different_ project pointed at this public repo):** stop and read `INTEGRATING.md` first. Do **not** follow the workflow below — `tasks/todo.md`, `tasks/lessons.md`, the plan-mode defaults, and the subagent rituals are all maintainer-only. Your job in a consumer project is to lift the `lib/pass-*` modules and `app/editor/_components/**` into the host tree, wire `EditorShell`'s `onGenerate` prop to the host backend, and resist the temptation to edit this repo. `INTEGRATING.md` lists exactly which directories to copy, the pinned peer-deps, the public types, and the pitfalls.
+
 @AGENTS.md
 
 ## Workflow Defaults

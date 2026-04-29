@@ -8,7 +8,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import type { PassStyle } from "@/lib/pass-spec";
-import { DownloadButton } from "./DownloadButton";
+import { DownloadButton, type OnGenerate } from "./DownloadButton";
 import { IssueTray } from "./IssueTray";
 import { ImageSlotUploader } from "./ImageSlotUploader";
 import { PreviewPanel } from "./PreviewPanel";
@@ -23,11 +23,17 @@ import { validateEditor } from "./validate";
 
 export interface EditorShellProps {
   defaults?: EditorDefaultsOverride;
+  /**
+   * Override the `.pkpass` backend. Omit to use the default POST to
+   * `/api/passes/generate` (the one this repo ships). Consumer projects
+   * embedding the editor in a different app should pass their own.
+   */
+  onGenerate?: OnGenerate;
 }
 
 const DEFAULT_OPEN = ["identity", "content", "media"];
 
-export function EditorShell({ defaults }: EditorShellProps = {}) {
+export function EditorShell({ defaults, onGenerate }: EditorShellProps = {}) {
   const [drafts, setDrafts] = useState<DraftStore>(() => seedDrafts("generic", defaults ?? {}));
   const methods = useForm<EditorFormValues>({
     defaultValues: defaultValues("generic", defaults),
@@ -76,7 +82,12 @@ export function EditorShell({ defaults }: EditorShellProps = {}) {
 
   return (
     <FormProvider {...methods}>
-      <IssuesAndForm formRef={formRef} onSwitchStyle={switchStyle} onFocus={focusField} />
+      <IssuesAndForm
+        formRef={formRef}
+        onSwitchStyle={switchStyle}
+        onFocus={focusField}
+        onGenerate={onGenerate}
+      />
     </FormProvider>
   );
 }
@@ -85,9 +96,10 @@ interface InnerProps {
   formRef: React.RefObject<HTMLFormElement | null>;
   onSwitchStyle: (next: PassStyle) => void;
   onFocus: (formPath: string) => void;
+  onGenerate?: OnGenerate;
 }
 
-function IssuesAndForm({ formRef, onSwitchStyle, onFocus }: InnerProps) {
+function IssuesAndForm({ formRef, onSwitchStyle, onFocus, onGenerate }: InnerProps) {
   const { control, getValues } = useFormContextSafe();
   // `useWatch` may return `undefined` on the first render (before RHF seeds
   // from defaults); fall back to `getValues()` so downstream components
@@ -164,7 +176,7 @@ function IssuesAndForm({ formRef, onSwitchStyle, onFocus }: InnerProps) {
         <p className="text-center text-xs text-muted-foreground">
           Tap the preview to flip front and back.
         </p>
-        <DownloadButton issues={issues} />
+        <DownloadButton issues={issues} onGenerate={onGenerate} />
       </aside>
     </div>
   );

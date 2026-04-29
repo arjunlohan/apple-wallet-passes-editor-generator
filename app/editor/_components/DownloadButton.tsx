@@ -12,11 +12,36 @@ import type { EditorIssue } from "./validate";
 
 const REQUIRED_ASSETS = ["icon.1x", "icon.2x", "icon.3x"] as const;
 
-interface Props {
-  issues: EditorIssue[];
+/** Payload the editor hands to the caller's generation backend. */
+export interface GenerateRequest {
+  definition: unknown;
+  assets: Record<string, Record<string, string>>;
 }
 
-export function DownloadButton({ issues }: Props) {
+/**
+ * Result the backend must return. `bytes` is the signed `.pkpass`;
+ * `filename` is optional and only used as a UX hint for the download.
+ * Return `{ error, issues? }` instead to surface a user-facing failure.
+ */
+export type GenerateResult =
+  | { ok: true; bytes: Blob; filename?: string }
+  | { ok: false; error: string; issues?: PassValidationIssue[] };
+
+export type OnGenerate = (body: GenerateRequest) => Promise<GenerateResult>;
+
+interface Props {
+  issues: EditorIssue[];
+  /**
+   * Call into your backend to sign + return a `.pkpass`. If omitted, the
+   * default POSTs JSON to `/api/passes/generate` and expects a blob back —
+   * which is what this repo ships with. Consumer projects embedding the
+   * editor should pass their own `onGenerate` instead so the editor isn't
+   * coupled to that Next.js route.
+   */
+  onGenerate?: OnGenerate;
+}
+
+export function DownloadButton({ issues, onGenerate = defaultOnGenerate }: Props) {
   const { getValues, control } = useFormContext<EditorFormValues>();
   const assets = useWatch({ control, name: "assets" }) ?? {};
   const missingAssets = REQUIRED_ASSETS.filter((k) => !assets[k]);
@@ -41,29 +66,19 @@ export function DownloadButton({ issues }: Props) {
         return;
       }
       const definition = buildDefinitionFromForm(values);
-      const body = { definition, assets: groupAssets(values.assets) };
-      const res = await fetch("/api/passes/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      if (!res.ok) {
-        const payload = (await res.json().catch(() => ({ error: `HTTP ${res.status}` }))) as {
-          error?: string;
-          issues?: PassValidationIssue[];
-        };
-        setState({
-          kind: "error",
-          message: payload.error ?? `HTTP ${res.status}`,
-          issues: payload.issues,
-        });
+      const body: GenerateRequest = {
+        definition,
+        assets: groupAssets(values.assets),
+      };
+      const result = await onGenerate(body);
+      if (!result.ok) {
+        setState({ kind: "error", message: result.error, issues: result.issues });
         return;
       }
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
+      const url = URL.createObjectURL(result.bytes);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${values.serialNumber || "pass"}.pkpass`;
+      a.download = result.filename ?? `${values.serialNumber || "pass"}.pkpass`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -126,6 +141,32 @@ export function DownloadButton({ issues }: Props) {
     </div>
   );
 }
+
+/**
+ * Default backend: POST the editor payload as JSON to `/api/passes/generate`
+ * and expect either a `.pkpass` blob or a `{ error, issues? }` JSON body.
+ * Consumer projects override this by passing `onGenerate` to `EditorShell`.
+ */
+const defaultOnGenerate: OnGenerate = async (body) => {
+  const res = await fetch("/api/passes/generate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const payload = (await res.json().catch(() => ({ error: `HTTP ${res.status}` }))) as {
+      error?: string;
+      issues?: PassValidationIssue[];
+    };
+    return {
+      ok: false,
+      error: payload.error ?? `HTTP ${res.status}`,
+      issues: payload.issues,
+    };
+  }
+  const blob = await res.blob();
+  return { ok: true, bytes: blob };
+};
 
 function groupAssets(flat: Record<string, string>): Record<string, Record<string, string>> {
   const out: Record<string, Record<string, string>> = {};
