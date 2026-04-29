@@ -1,40 +1,29 @@
-import Link from "next/link";
+import { EditorShell } from "./editor/_components/EditorShell";
 
-export default function Home() {
+export const dynamic = "force-dynamic";
+
+export default function HomePage() {
+  const defaults = {
+    passTypeIdentifier: process.env.APPLE_PASS_TYPE_IDENTIFIER ?? "",
+    teamIdentifier: process.env.APPLE_TEAM_IDENTIFIER ?? "",
+  };
   return (
-    <main
-      style={{
-        display: "flex",
-        flex: 1,
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 24,
-        padding: 48,
-        textAlign: "center",
-      }}
-    >
-      <h1 style={{ fontSize: 36, fontWeight: 700, maxWidth: 640, lineHeight: 1.1 }}>
-        Open-source Apple Wallet Pass editor &amp; generator
-      </h1>
-      <p style={{ maxWidth: 560, opacity: 0.75, lineHeight: 1.5 }}>
-        Design, preview, and download signed .pkpass files. What you see in the editor is
-        what appears in Apple Wallet — no surprises.
-      </p>
-      <Link
-        href="/editor"
-        style={{
-          display: "inline-flex",
-          padding: "12px 24px",
-          borderRadius: 999,
-          background: "#2563eb",
-          color: "white",
-          fontWeight: 600,
-          textDecoration: "none",
-        }}
-      >
-        Open editor →
-      </Link>
-    </main>
+    <div className="dark flex flex-1 flex-col bg-background text-foreground">
+      <header className="border-b border-border/60 bg-card/50">
+        <div className="mx-auto flex max-w-[1400px] flex-col gap-1 px-4 py-6">
+          <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            Apple Wallet
+          </span>
+          <h1 className="font-heading text-3xl font-medium leading-tight">
+            Pass editor &amp; generator
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Design, preview, and download signed .pkpass files. Pick a template,
+            edit the fields, drop an icon.
+          </p>
+        </div>
+      </header>
+      <EditorShell defaults={defaults} />
+    </div>
   );
 }

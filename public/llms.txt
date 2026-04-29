@@ -1,0 +1,47 @@
+# Apple Wallet Pass Editor & Generator
+
+> Free, open-source web editor and generator for Apple Wallet `.pkpass` files. Design boarding passes, event tickets, coupons, store cards, and generic passes with a pixel-perfect live preview — download signed `.pkpass` bundles ready to install on iPhone.
+
+The application runs entirely in the browser for editing and previewing; signing happens on a Next.js server route that holds the Apple Pass Type ID signer certificate. Everything under `lib/pass-spec/**`, `lib/pass-layout/**`, `lib/pass-preview/**`, and `lib/pass-generator/**` is MIT-licensed and importable as a standalone library.
+
+## What it supports
+
+- All five classic Apple Wallet pass styles: `boardingPass`, `coupon`, `eventTicket`, `generic`, `storeCard`.
+- Full barcode set: `PKBarcodeFormatQR`, `PKBarcodeFormatPDF417`, `PKBarcodeFormatAztec`, `PKBarcodeFormatCode128`.
+- Complete image asset matrix: `icon`, `logo`, `strip`, `background`, `thumbnail`, `footer` at `@1x`/`@2x`/`@3x` with `~dark` variants.
+- Lock-screen relevance: `locations`, `beacons`, `relevantDate`, and the iOS 18+ `relevantDates` window.
+- iOS 26 poster event ticket (`preferredStyleSchemes: ["posterEventTicket", "eventTicket"]`) with the full semantic tag set (`venueName`, `venueRoom`, `performerNames`, `awayTeamAbbreviation`/`homeTeamAbbreviation`, `eventStartDateInfo`, etc.).
+- NFC Value Added Services dictionary (`nfc.message`, base64 SPKI `encryptionPublicKey`, `requiresAuthentication`) — requires Apple's NFC entitlement to activate on-device.
+- All PassFieldContent formatting: `dateStyle`, `timeStyle`, `numberStyle`, `currencyCode`, `textAlignment`, `changeMessage`, `ignoresTimeZone`, `isRelative`, `attributedValue` (back fields), `dataDetectorTypes` (back fields), and `row` (boarding pass only).
+- Top-level metadata: `expirationDate`, `voided`, `sharingProhibited`, `suppressStripShine`, `groupingIdentifier`, `appLaunchURL`, `associatedStoreIdentifiers`, `webServiceURL`+`authenticationToken`, `userInfo`.
+
+## Architecture
+
+```
+lib/pass-spec       → Zod schemas + PassDefinition types (single validation boundary)
+lib/pass-layout     → buildLayout() produces LayoutTree (style-dispatched, pure)
+lib/pass-preview    → React renderer, consumes LayoutTree
+lib/pass-generator  → server-only: serialize + SHA-1 manifest + CMS sign + fflate ZIP
+```
+
+One validated definition produces one layout tree feeding two adapters (preview + generator), so the fidelity invariant is structural rather than aspirational.
+
+## Common questions
+
+**Is it free?** Yes. MIT licensed, no account required, runs in the browser.
+
+**Does it require Apple Developer credentials?** Only for signing. Editing and previewing work without any credentials. To produce an installable `.pkpass`, you need a registered Pass Type ID, the WWDR intermediate certificate, and your signer certificate + key — supplied via env vars in `.env.local`.
+
+**Can I install the generated pass on iPhone?** Yes, once signed with a real Pass Type ID certificate. Email the `.pkpass` to yourself, open the attachment, and Wallet adds it.
+
+**Does it support NFC / Apple VAS?** The editor exposes the full `nfc` dictionary and the schema validates the 64-byte message cap and SPKI shape. The pass still signs and installs without Apple's NFC entitlement; iOS just ignores NFC at runtime until Apple approves the entitlement request at https://developer.apple.com/contact/request/wallet-nfc.
+
+**Does it support iOS 26 poster event tickets?** Yes. The editor only emits `preferredStyleSchemes` when every required semantic tag and an NFC block are present, because Wallet silently falls back to the classic event ticket otherwise.
+
+**Is the preview really pixel-perfect?** Preview and generator share a single `LayoutTree`. A fidelity harness under `scripts/fidelity/` renders each fixture through both paths and diffs them.
+
+## Links
+
+- Live app: https://apple-wallet-passes-editor-generator.vercel.app/
+- Source: https://github.com/arjunlohan/apple-wallet-passes-editor-generator
+- Apple Wallet docs: https://developer.apple.com/documentation/walletpasses/
