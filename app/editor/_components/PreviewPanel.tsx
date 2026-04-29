@@ -2,8 +2,8 @@
 import { useFormContext } from "react-hook-form";
 import { Card } from "@/components/ui/card";
 import { PassPreview } from "@/lib/pass-preview";
-import type { PassAssets } from "@/lib/pass-spec";
-import type { ImageSlot, ImageVariants } from "@/lib/pass-spec";
+import { PassDefinitionSchema } from "@/lib/pass-spec";
+import type { PassAssets, ImageSlot, ImageVariants } from "@/lib/pass-spec";
 import { buildDefinitionFromForm } from "./buildDefinition";
 import type { EditorFormValues } from "./defaults";
 
@@ -20,28 +20,28 @@ export function PreviewPanel() {
   }
   const assets = assetsFromForm(values.assets);
 
+  // `buildLayout()` inside `<PassPreview>` calls `PassDefinitionSchema.parse`
+  // at render time — which throws and unmounts the whole page if the form
+  // is missing required fields (e.g. no env creds on a fresh deploy).
+  // Preflight with `safeParse` so the editor stays alive while the user is
+  // still filling things in; the issue tray already surfaces the real errors.
+  const parsed = definition ? PassDefinitionSchema.safeParse(definition) : null;
+  const canRender = parsed?.success === true;
+
   return (
     <Card className="flex items-center justify-center gap-0 bg-muted/30 p-6">
       {buildError ? (
         <div className="max-w-80 text-center text-sm text-destructive">{buildError}</div>
-      ) : definition ? (
-        <PreviewSafe definition={definition} assets={assets} />
-      ) : null}
+      ) : canRender ? (
+        <PassPreview definition={definition} assets={assets} />
+      ) : (
+        <div className="max-w-80 text-center text-sm text-muted-foreground">
+          Fill in the required identity fields to see the live preview.
+          Details are listed in the issue tray below.
+        </div>
+      )}
     </Card>
   );
-}
-
-function PreviewSafe({ definition, assets }: { definition: unknown; assets: PassAssets }) {
-  try {
-    // eslint-disable-next-line react-hooks/error-boundaries
-    return <PassPreview definition={definition} assets={assets} />;
-  } catch (err) {
-    return (
-      <div className="max-w-80 text-center text-sm text-destructive">
-        {err instanceof Error ? err.message : "invalid definition"}
-      </div>
-    );
-  }
 }
 
 function assetsFromForm(entries: Record<string, string>): PassAssets {
