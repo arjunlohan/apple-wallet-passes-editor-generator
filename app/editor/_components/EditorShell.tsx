@@ -167,8 +167,6 @@ function IssuesAndForm({ formRef, onSwitchStyle, onFocus, onGenerate }: InnerPro
             </AccordionContent>
           </AccordionItem>
         </Accordion>
-
-        <IssueTray issues={issues} onFocus={onFocus} />
       </form>
 
       <aside className="flex flex-col gap-4 lg:sticky lg:top-6 lg:self-start">
@@ -177,6 +175,7 @@ function IssuesAndForm({ formRef, onSwitchStyle, onFocus, onGenerate }: InnerPro
           Tap the preview to flip front and back.
         </p>
         <DownloadButton issues={issues} onGenerate={onGenerate} />
+        <IssueTray issues={issues} onFocus={onFocus} />
       </aside>
     </div>
   );

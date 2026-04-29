@@ -16,7 +16,7 @@ export function IssueTray({ issues, onFocus }: Props) {
   if (issues.length === 0) return null;
 
   return (
-    <div className="sticky bottom-4 z-20 rounded-3xl bg-destructive/5 ring-1 ring-destructive/30 shadow-lg backdrop-blur">
+    <div className="rounded-3xl bg-destructive/5 ring-1 ring-destructive/30">
       <button
         type="button"
         onClick={() => setExpanded((v) => !v)}
