@@ -48,9 +48,19 @@ export async function POST(request: Request) {
   try {
     signer = getSigner();
   } catch (err) {
+    // The signer env vars aren't set on this deploy (common on a public
+    // Vercel preview deployment — see README "Requirements" section).
+    // Rewrite to a user-facing message so the download button shows
+    // something actionable instead of a cryptic env var name.
+    const detail = err instanceof Error ? err.message : "signer unavailable";
+    const missingEnv = /^missing required env var: /.test(detail);
     return Response.json(
-      { error: err instanceof Error ? err.message : "signer unavailable" },
-      { status: 500 },
+      {
+        error: missingEnv
+          ? "This deployment isn't configured to sign passes. Set APPLE_WWDR_CERT_BASE64, APPLE_SIGNER_CERT_BASE64, APPLE_SIGNER_KEY_BASE64, and APPLE_SIGNER_KEY_PASSPHRASE in the hosting env, or clone the repo and run it locally with your own Apple Developer credentials."
+          : detail,
+      },
+      { status: missingEnv ? 503 : 500 },
     );
   }
 
